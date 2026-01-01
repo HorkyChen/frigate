@@ -179,7 +179,50 @@ def allow_any_authenticated():
     async def auth_checker(request: Request):
         # Ensure a remote-user has been set by the /auth endpoint
         username = request.headers.get("remote-user")
-        if username is None:
+
+        # If not set by proxy, try to validate directly (e.g. for local dev)
+        if not username:
+            auth_config = request.app.frigate_config.auth
+            encoded_token = None
+
+            if not auth_config.enabled:
+                # If auth is disabled, default to viewer if not set
+                username = "viewer"
+                role = "viewer"
+            elif auth_config.cookie_name in request.cookies:
+                encoded_token = request.cookies[auth_config.cookie_name]
+            elif "authorization" in request.headers and request.headers[
+                "authorization"
+            ].startswith("Bearer "):
+                encoded_token = request.headers["authorization"].replace("Bearer ", "")
+
+            if encoded_token:
+                try:
+                    token = jwt.decode(encoded_token, request.app.jwt_token)
+                    claims = token.claims
+                    if (
+                        "sub" in claims
+                        and "role" in claims
+                        and claims.get("exp", 0) > time.time()
+                    ):
+                        username = claims["sub"]
+                        role = claims["role"]
+                except Exception:
+                    pass
+
+            # If we successfully resolved a user, inject it into the headers
+            # so downstream endpoints (like /profile) can use it naturally
+            if username:
+                new_headers = request.headers.raw + [
+                    (b"remote-user", username.encode("utf-8")),
+                    (b"remote-role", (role or "viewer").encode("utf-8")),
+                ]
+                request.scope["headers"] = new_headers
+                # Clear the cache so the new headers are read
+                if hasattr(request, "_headers"):
+                    del request._headers
+
+        if request.headers.get("remote-user") is None:
             raise HTTPException(status_code=401, detail="Authentication required")
         return
 

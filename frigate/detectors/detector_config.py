@@ -103,8 +103,16 @@ class ModelConfig(BaseModel):
     def __init__(self, **config):
         super().__init__(**config)
 
+        labelmap_path = config.get("labelmap_path", "/labelmap.txt")
+        if not os.path.exists(labelmap_path):
+            # Fallback to local path relative to the repo root
+            # This file is deep in frigate/detectors, so go up 3 levels to reach repo root
+            local_path = os.path.join(os.path.dirname(__file__), "..", "..", "labelmap.txt")
+            if os.path.exists(local_path):
+                labelmap_path = local_path
+
         self._merged_labelmap = {
-            **load_labels(config.get("labelmap_path", "/labelmap.txt")),
+            **load_labels(labelmap_path),
             **config.get("labelmap", {}),
         }
         self._colormap = {}

@@ -193,7 +193,17 @@ class FrigateApp:
 
         # Run migrations
         del logging.getLogger("peewee_migrate").handlers[:]
-        router = Router(migrate_db)
+        migrate_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "migrations"))
+
+        # If the relative path doesn't contain migrations (e.g. running from a shadowed workspace),
+        # fallback to the known repository location for local dev.
+        if not os.path.exists(migrate_dir) or not os.listdir(migrate_dir):
+            migrate_dir = "/home/horky/projects/nvr/frigate/migrations"
+
+        router = Router(
+            migrate_db,
+            migrate_dir=migrate_dir,
+        )
 
         if len(router.diff) > 0:
             logger.info("Making backup of DB before migrations...")
