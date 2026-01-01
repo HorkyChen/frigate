@@ -1,11 +1,22 @@
 import os
 import re
 
-INSTALL_DIR = "/opt/frigate"
 CONFIG_DIR = "/config"
+if os.path.exists(CONFIG_DIR):
+    INSTALL_DIR = "/opt/frigate"
+    BASE_DIR = "/media/frigate"
+    print("Using standard Docker paths for Frigate.")
+else:
+    WORKSPACE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_DIR = f"{WORKSPACE_DIR}/media/frigate"
+    CONFIG_DIR = f"{WORKSPACE_DIR}/config"
+    INSTALL_DIR = f"{WORKSPACE_DIR}/"
+    print("Using development paths for Frigate.")
+    print(f"  WORKSPACE_DIR: {WORKSPACE_DIR}")
+    print(f"  CONFIG_DIR: {CONFIG_DIR}")
+
 DEFAULT_DB_PATH = f"{CONFIG_DIR}/frigate.db"
 MODEL_CACHE_DIR = f"{CONFIG_DIR}/model_cache"
-BASE_DIR = "/media/frigate"
 CLIPS_DIR = f"{BASE_DIR}/clips"
 EXPORT_DIR = f"{BASE_DIR}/exports"
 FACE_DIR = f"{CLIPS_DIR}/faces"
