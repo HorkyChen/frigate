@@ -1,8 +1,10 @@
 import logging
+import os
 import re
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from joserfc.jwk import OctKey
 from playhouse.sqliteq import SqliteQueueDatabase
@@ -34,6 +36,7 @@ from frigate.embeddings import EmbeddingsContext
 from frigate.ptz.onvif import OnvifController
 from frigate.stats.emitter import StatsEmitter
 from frigate.storage import StorageMaintainer
+from frigate.const import CLIPS_DIR, EXPORT_DIR, RECORD_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -159,5 +162,18 @@ def create_fastapi_app(
         app.jwt_token = OctKey.import_key(key_bytes)
     else:
         app.jwt_token = None
+
+    # Serve static files in development (mimic Nginx)
+    str_clips = str(CLIPS_DIR)
+    if os.path.isdir(str_clips):
+        app.mount("/clips", StaticFiles(directory=str_clips), name="clips")
+
+    str_exports = str(EXPORT_DIR)
+    if os.path.isdir(str_exports):
+        app.mount("/exports", StaticFiles(directory=str_exports), name="exports")
+
+    str_recordings = str(RECORD_DIR)
+    if os.path.isdir(str_recordings):
+        app.mount("/recordings", StaticFiles(directory=str_recordings), name="recordings")
 
     return app
