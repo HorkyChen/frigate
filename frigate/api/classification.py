@@ -15,7 +15,7 @@ from pathvalidate import sanitize_filename
 from peewee import DoesNotExist
 from playhouse.shortcuts import model_to_dict
 
-from frigate.api.auth import require_role
+from frigate.api.auth import allow_any_authenticated, require_role
 from frigate.api.defs.request.classification_body import (
     AudioTranscriptionBody,
     DeleteFaceImagesBody,
@@ -51,6 +51,7 @@ router = APIRouter(tags=[Tags.classification])
 
 @router.get(
     "/faces",
+    dependencies=[Depends(allow_any_authenticated())],
     response_model=FacesResponse,
     summary="Get all registered faces",
     description="""Returns a dictionary mapping face names to lists of image filenames.
@@ -559,6 +560,7 @@ def transcribe_audio(request: Request, body: AudioTranscriptionBody):
 
 @router.get(
     "/classification/{name}/dataset",
+    dependencies=[Depends(allow_any_authenticated())],
     summary="Get classification dataset",
     description="""Gets the dataset for a specific classification model.
     The name must exist in the classification models. Returns a success message or an error if the name is invalid.""",
@@ -626,6 +628,7 @@ def get_classification_dataset(name: str):
 
 @router.get(
     "/classification/attributes",
+    dependencies=[Depends(allow_any_authenticated())],
     summary="Get custom classification attributes",
     description="""Returns custom classification attributes for a given object type.
     Only includes models with classification_type set to 'attribute'.
@@ -679,6 +682,7 @@ def get_custom_attributes(
 
 @router.get(
     "/classification/{name}/train",
+    dependencies=[Depends(allow_any_authenticated())],
     summary="Get classification train images",
     description="""Gets the train images for a specific classification model.
     The name must exist in the classification models. Returns a success message or an error if the name is invalid.""",
